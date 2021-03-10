@@ -12,3 +12,6 @@ There are three main components of found in this repository:
 
 # MIL-STD-1553 Communication/Flight Software Emulation
 
+- MIL-STD-1553_Library.c
+- BC_Simulator.c
+- RT_Simulator.c
