@@ -12,6 +12,11 @@ There are three main components of found in this repository:
 
 # MIL-STD-1553 Communication/Flight Software Emulation
 
-- MIL-STD-1553_Library.c
-- BC_Simulator.c
-- RT_Simulator.c
+- MIL-STD-1553_Library.c: This is the core of the emulation code and contains all the functions for constructing 1553 words and sending data between the bus controller and remote terminals. BC_Simulator.c and RT_simulator.c both call into this library to perform 1553 functions, so this library should be included on the bus controller and every remote terminal.
+- BC_Simulator.c: The bus controller simulator initializes a bc listener. This file is #included in Flight_Software.c and will be initialized by Flight_Software.c. This file should be stored on the Peta-Linux instance, along with Flight_Software.c (and, of course, the 1553_Library as well).
+- RT_Simulator.c: This file initializes the remote terminal and should be run
+- Flight_Software.c: The flight software file defines a series of commands to be sent to spacecraft systems periodically. It should be run on Peta-Linux.
+
+# Attack Code
+
+# Security Monitor
