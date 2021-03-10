@@ -95,8 +95,8 @@ int main()
 {
     init_bc();
     sleep(1);
-    clock_t time_at_start = clock();
-    clock_t time_over_target = clock();
+    //clock_t time_at_start = clock();
+    //clock_t time_over_target = clock();
     while (1)
     {
         /* Since we are not modeling satellite orbits in this code,
@@ -104,7 +104,7 @@ int main()
            LEO satellites take approx. 90 minutes to orbit the earth
            and so are over the ground station every 90 minutes. This
            has been reduced to 9 minutes in this simulation. */
-        
+        /*
         clock_t current_time = clock();
         int send_ground_station_command = RANDOM(1, 100);
 
@@ -125,16 +125,21 @@ int main()
         }
         else
         {
-
+        */
             //mode_code_e mode_code1 = RANDOM(0, 8);
             //mode_code_e mode_code2 = RANDOM(10, 15);
             
             check_telemetry();
-            sleep(60);
+            sleep(10);
             check_status_sc_systems();
-            sleep(60);
-
-        }
+            sleep(10);
+            point_sc_at_groundstation();
+            send_data_to_ground();
+            sleep(10);
+            point_sc_at_target();
+            take_picture();
+            sleep(10);
+           
 
  
     }
