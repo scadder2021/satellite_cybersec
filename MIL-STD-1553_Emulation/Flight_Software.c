@@ -138,7 +138,7 @@ int main()
             sleep(10);
             point_sc_at_target();
             take_picture();
-            sleep(10);
+            sleep(300);
            
 
  
