@@ -1,3 +1,9 @@
+/* ㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹ
+ㅂ           2020-2021 CU BOULDER Spacecraft Cybersecurity          ㅂ
+ㅂ                           Eloise Morris                          ㅂ
+ㅂ                             내일을 향해!                            ㅂ
+ㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹㄹ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,6 +13,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <time.h>
 
 
 /* sync bits for data word = 001b */
@@ -26,7 +33,7 @@
 #define RT_CLASS 2
 
 /* Define the RT addresses of remote terminals and their spacecraft function (ie. the thruster
-   is at rt address 1). More remote terminals may be added to improve fidelity to
+   is at RT address 1). More remote terminals may be added to improve fidelity to
    true satellite operation and their addresses and functions should be listed here. */
 #define THRUSTER 0x01
 #define MULTIPLEXOR 0x02
@@ -48,8 +55,8 @@
 #define CHECK_TELEMETRY 'D'
 #define RADIO_TRANSMIT 'E'
 
-//Sets bus controller timeout to specified time (in microseconds)
-#define TIMEOUT 1000
+
+#define TIMEOUT 10000000 //Sets bus controller timeout to specified time (in microseconds)
 
 #ifndef BYTE_ORDER
 #define BIG_ENDIAN 4321
@@ -57,7 +64,8 @@
 #define BYTE_ORDER LITTLE_ENDIAN
 #endif
 
-/* Here we define structures for the three types of words defined
+/* =================== 1553 Word Structures =====================
+   Here we define structures for the three types of words defined
    in the MIL-STD-1553 spec: command, status, and data words
    a structure "generic word" is also defined to take in a word of
    unknown variety until it can be assigned the appropriate structure
@@ -65,6 +73,15 @@
    sent two eight-bit characters as data words, which I have
    maintained. However, in the structure, the bits of these words
    are split in order to be consistant with byte lines */
+
+/* Command word:
+0                   1                   2                   
+0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|Sync | RT Addr |T| Subaddr | wrd cnt |P| Pddng |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+*/
 typedef struct __attribute__((__packed__))
 {
     #if BYTE_ORDER == BIG_ENDIAN
@@ -93,6 +110,15 @@ typedef struct __attribute__((__packed__))
 
 }command_word_s;
 
+
+/* Status word:
+0                   1                   2                   
+0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|Sync | RT Addr |E|I|S| Res |B|B|F|D|T|P| Pddng |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+*/
 typedef struct __attribute__((__packed__))
 {
     #if BYTE_ORDER == BIG_ENDIAN
@@ -130,6 +156,15 @@ typedef struct __attribute__((__packed__))
     #endif
 
 }status_word_s;
+
+/* Data word:
+0                   1                   2                   
+0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|Sync |   CHAR 1    |      CHAR 2     |P| Pddng |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+*/
 
 typedef struct __attribute__((__packed__)) 
 {
@@ -178,6 +213,7 @@ typedef struct __attribute__((__packed__))
     #endif
 }generic_word_s;
 
+
 /* creates a structure to store unique rt/bc data passed by the
    simulator codes */
 typedef struct
@@ -188,7 +224,6 @@ typedef struct
     unsigned int user_class; //specifies whether a user is a bus controller or remote terminal
 }client_cb;
 
-client_cb control_block; //global variable for client control block structure
 
 /* MACROs to split a data word character into its 2 corresponding
   fields in data_word_s and recombine them. This function is needed
@@ -272,9 +307,17 @@ char rt_memory_2d[64][2] = { {'A','A'},
                              {'C','L'},                            
                              {'C','M'} };
 
+/*============================ Global Variables ===============================*/
+
 int num_pending_words; //variable to allow bus controller to wait for all requested data
 
 int waiting_sc_command = 0; //variable to wait for spacecraft command
+
+
+
+generic_word_s queue[256]; //create a buffer to store 1553 data to be written to shared memory TODO
+
+client_cb control_block; //global variable for client control block structure
 
 /* ==================== MODE CODES (FOR REFERENCE) ========================
 
@@ -309,7 +352,7 @@ typedef enum
    INHIBIT_TERMINAL_FLAG,
    OVERRIDE_INHIBIT_TERMINAL_FLAG,
    RESET_REMOTE_TERMINAL,
-   TRANSMIT_VECTOR_WORD = 0x10, //Defined to skip over reserved codes
+   TRANSMIT_VECTOR_WORD = 0x10, //Defined to skip over codes reserved in standard
    SYNCHRONIZE_DATA,
    TRANSMIT_LAST_COMMAND_WORD,
    TRANSMIT_BIT_WORD,
@@ -331,9 +374,10 @@ void interpret_incoming_frame_rt(generic_word_s * generic_word);
 void send_data(generic_word_s *data); 
 void analyze_mode_code(command_word_s * command_word);
 void interpret_sc_command(data_word_s * data_word);
+void calculate_parity_bit(command_word_s *data);
 
 
-// A hacky way to print command word bits :)
+// A hacky way to print command word bits (testing)
 void print_word(command_word_s * word_check)
 {
     #define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n"
@@ -434,11 +478,8 @@ void print_void(void * void_ptr)
 
 /* ========================================================================
    The following functions are used to create the command/data words sent 
-   by the BC to the RT, which are passed to the code via the json files 
-   found in the repository 
+   by the BC to the RT
    ====================================================================== */
-
-
 
 
 /* This function sends a command word for the RT to receive data and 
@@ -459,7 +500,7 @@ void send_data_to_rt(int rt_address, int subaddress, char message[])
     {
         number_data_words = (message_length / 2) + 1; //since we can only send 2 8bit characters per word, if there is one left over it is sent in own word
     }
-    printf("Number of data words: %d\n", number_data_words);
+    //printf("Number of data words: %d\n", number_data_words);
     build_command_word(rt_address, 'R', subaddress, number_data_words); //first send command word instructing RT to receive
 
     for(data_word_count = 0; data_word_count < number_data_words; data_word_count++) //construct as many data words as needed to send entire message
@@ -483,12 +524,22 @@ void send_data_to_rt(int rt_address, int subaddress, char message[])
 void request_data_from_rt(int rt_address, int subaddress, int word_count)
 {
     build_command_word(rt_address, 'T', subaddress, word_count);
-    num_pending_words = word_count; //set the incrementer so it can wait until all requested data is received
+    num_pending_words = word_count + 1; //set the incrementer so it can wait until all requested data is received. The plus 1 accounts for the status word.
+    int wait_time = 0;
     while (num_pending_words > 0)
     {
-        //TODO implement timeout
-        usleep(1);
+        if(wait_time >= TIMEOUT && num_pending_words == (word_count + 1))
+        {
+            printf("The timeout has been reached without receiving any status or data words.\n");
+            break;
+        }
+        else
+        {
+            usleep(10);
+            wait_time+=10;
+        }
     }
+
 }
 
 void send_sc_command(int rt_address, char command)
@@ -512,9 +563,11 @@ void send_mode_code(int rt_address, int mode_code)
     {
         mode_code_command.tr_bit = 0;
     }
-    mode_code_command.subaddress = 0;
+    mode_code_command.subaddress = 0; //For mode codes, the subaddress is 0 or 31
     mode_code_command.word_count1 = (mode_code >> 3) & 0x3;
     mode_code_command.word_count2 = (mode_code) & 0x7;
+    mode_code_command.padding = 0;
+    calculate_parity_bit(&mode_code_command);
     send_data((generic_word_s*)&mode_code_command);
 
 }
@@ -536,7 +589,8 @@ void build_command_word(int rt_address, char tr_bit, int subaddress, int word_co
     command_word.subaddress = subaddress;
     command_word.word_count1 = (word_count >> 3) & 0x3; //TODO
     command_word.word_count2 = (word_count) & 0x7;
-    command_word.parity_bit = 1;
+    command_word.padding = 0;
+    calculate_parity_bit(&command_word);
     //print_word(&command_word);
     send_data((generic_word_s*)&command_word);
 }
@@ -550,9 +604,9 @@ void build_bc_data_word(char message_byte1, char message_byte2)
     SPLIT_CHAR(message_byte1, data_word.character_A1, data_word.character_A2);
 
     SPLIT_CHAR(message_byte2, data_word.character_B1, data_word.character_B2);
-    data_word.parity_bit = 1;
     data_word.padding = 0;
-    print_data_word(&data_word);
+    calculate_parity_bit((command_word_s *)&data_word);
+    //print_data_word(&data_word);
     send_data((generic_word_s*)&data_word); 
 }
 
@@ -579,7 +633,8 @@ void build_rt_data_word(int subaddress, int data_word_count)
 
         SPLIT_CHAR((int)rt_memory_2d[subaddress+data_words_sent][0], data_word.character_A1, data_word.character_A2);
         SPLIT_CHAR((int)rt_memory_2d[subaddress+data_words_sent][1], data_word.character_B1, data_word.character_B2);
-        data_word.parity_bit = 1;
+        data_word.padding = 0;
+        calculate_parity_bit((command_word_s *)&data_word);
         
         send_data((generic_word_s*)&data_word);
     }
@@ -602,10 +657,35 @@ void build_status_word()
     status_word.subsystem_flag = 0;
     status_word.dynamic_bus_control_accept = 0;
     status_word.terminal_flag = 1;
-    status_word.parity_bit = 1;
+    status_word.padding = 0;
+    calculate_parity_bit((command_word_s *)&status_word);
 
     send_data((generic_word_s*)&status_word);
 
+}
+
+/* This function calculates and set the parity bit of
+   words for odd parity. It is important that the padding
+   of each word be set to zero as well, so it does not 
+   affect the parity of the 1553 data */
+void calculate_parity_bit(command_word_s *data)
+{
+    unsigned int x = *((unsigned int *)data);
+    x = x ^ (x >> 1);
+    x = x ^ (x >> 2);
+    x = x ^ (x >> 4);
+    x = x ^ (x >> 8);
+    x = x ^ (x >> 16);
+ 
+    if (x & 1)
+    {
+        data->parity_bit = 0;
+    }
+    else
+    {
+        data->parity_bit = 1;
+    }
+    
 }
 
 
@@ -644,6 +724,10 @@ void interpret_incoming_frame_bc(generic_word_s * generic_word)
 {
     if(generic_word->sync_bits == SYNC_BITS_STATUS)
     {
+        if(num_pending_words > 0)
+        {
+            num_pending_words -= 1;
+        }
         analyze_status_word((status_word_s *)generic_word);
     }
     else if(generic_word->sync_bits == SYNC_BITS_DATA)
@@ -664,7 +748,7 @@ void analyze_command_word(command_word_s * command_word)
 {
     if (command_word->rt_address == control_block.rt_address)
     {
-        print_word(command_word);
+        //print_word(command_word);
         if(command_word->tr_bit == 0)
         {
             if (command_word->subaddress == 0 || command_word->subaddress == 31) 
@@ -689,7 +773,6 @@ void analyze_command_word(command_word_s * command_word)
         }
     }
     
-
 }
 
 void analyze_mode_code(command_word_s * command_word)
@@ -756,10 +839,14 @@ void analyze_mode_code(command_word_s * command_word)
 /* Prints data words received */
 void decode_data_word(data_word_s * data_word)
 {
-    printf("decoding data word\n"); //testing
+    //printf("decoding data word\n"); testing
     if((COMBINE_CHAR(data_word->character_A1, data_word->character_A2)) == '/')
     {
-        interpret_sc_command(data_word);
+        if(waiting_sc_command == 1)
+        {
+            interpret_sc_command(data_word);
+            waiting_sc_command = 0;
+        }
     }
     else
     {
@@ -771,7 +858,7 @@ void decode_data_word(data_word_s * data_word)
 
 void interpret_sc_command(data_word_s * data_word)
 {
-    printf("interpreting sc command\n"); //testing
+    //printf("interpreting sc command\n"); 
     if((COMBINE_CHAR(data_word->character_B1, data_word->character_B2)) == 'A') //testing
     {
         printf("Taking picture\n");
@@ -797,12 +884,13 @@ void interpret_sc_command(data_word_s * data_word)
 /* Prints status words */
 void analyze_status_word(status_word_s * status_word)
 {
+
     printf("Status word: terminal_flag_bit: %d, busy bit: %d, brdcst_recvd_bit: %d, rt_address: %d, message_error_bit: %d, subsystem_flag_bit: %d,\
      dynamic_bus_control_accpt: %d, reserved_bits: %d, service_request_bit: %d, instrumentation_bit: %d\n", status_word->terminal_flag, status_word->busy,\
      status_word->brdcst_received, status_word->rt_address, status_word->message_error, status_word->subsystem_flag, status_word->dynamic_bus_control_accept,\
      status_word->reserved, status_word->service_request, status_word->instrumentation);
-}
 
+}
 
 
 /* ===========================================================
@@ -853,6 +941,7 @@ void *initialize_listener()
         n = recvfrom(socket_listener, (char *)buffer, BUFFER_SIZE, MSG_WAITALL, (struct sockaddr *) &address, &len); 
         buffer[n] = '\0';
         printf("packet received\n"); //testing
+        print_void(buffer); //testing
         if (control_block.user_class == BC_CLASS) //in order to know how to interpret the incoming word, the user class is referenced (which is set during initialization)
         {
             interpret_incoming_frame_bc((generic_word_s*)buffer);
@@ -900,7 +989,7 @@ void send_data(generic_word_s *data)
     address.sin_addr.s_addr = inet_addr(IP_ADDR); 
 
     int n, len;
-
+    //print_void((void *)data); DEBUG
     sendto(socket_sender, (const void *)data, sizeof(generic_word_s), 0, (const struct sockaddr *) &address, sizeof(address));
     
 }
@@ -921,3 +1010,14 @@ void initialize_library(int source_port, int destination_port, int rt_address, i
     listener = pthread_create(&thread1, NULL, initialize_listener, NULL);
 
 }
+
+/*
+
+FUTURE WORK:
+
+Spacecraft commands should be improved
+Create 1553 PCAP parser
+orbits? (LEO ~99 min/orbit)
+Change commands to hex representations
+
+*/
