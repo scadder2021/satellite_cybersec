@@ -22,7 +22,7 @@ How to Run:
 
 - Clone the Github repository.
 - Modify the RT_Simulator files so the RT addresses defined match the set up. To do this, first make sure the macros within the library are the devices and addresses you would like to use (For example, "#define THRUSTER 0x01" at line 38). Then, make sure each Pi is running as the device you want it to be (in the RT_simulator code, #define RT_ADDRESS THRUSTER)
-- Compile each file using: gcc -lpthread <file> -o <output file name> (compile the Flight_software code on a Raspberry Pi and then transfer it to the PetaLinux instance).
+- Compile each file using: gcc -lpthread "file" -o "output file name" (compile the Flight_software code on a Raspberry Pi and then transfer it to the PetaLinux instance).
 - Run the RT_Simulator code on each Raspberry Pi to initialize the 1553 library and begin listening for data on the defined ports.
 - Run the compiled flight software on the PetaLinux to begin sending spacecraft commands and receiving responses.
 
