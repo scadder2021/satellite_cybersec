@@ -26,6 +26,8 @@ How to Run:
 - Run the RT_Simulator code on each Raspberry Pi to initialize the 1553 library and begin listening for data on the defined ports.
 - Run the compiled flight software on the PetaLinux to begin sending spacecraft commands and receiving responses.
 
+![alt text](https://github.com/scadder2021/satellite_cybersec/blob/main/1553_Matrix.png)
+
 # Testbed Setup
 
 As shown in the block diagram above, the testbed is comprised of multiple Raspberry Pis simulating spacecraft subsystems (or "remote terminals" as per 1553) connected via Ethernet to a Xilinx Zynq ZC706 FPGA. The FPGA has an ARM processor running PetaLinux, a shared memory block, and a MicroBlaze processor (which will eventually run the security monitor).
