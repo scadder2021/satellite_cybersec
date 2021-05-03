@@ -30,8 +30,14 @@ How to Run:
 
 As shown in the block diagram above, the testbed is comprised of multiple Raspberry Pis simulating spacecraft subsystems (or "remote terminals" as per 1553) connected via Ethernet to a Xilinx Zynq ZC706 FPGA. The FPGA has an ARM processor running PetaLinux, a shared memory block, and a MicroBlaze processor (which will eventually run the security monitor).
 
+Within Vivado SDK, code must be uploaded to write 1553 data to the shared memory module where it can be read by the security monitor running on MicroBlaze processor.
+
 Information on replicating the FPGA design can be found on the previous team's wiki here: https://github.com/blue33p/Spacecraft-Cybersecurity-Testbed-Setup-FPGA-Xilinx-ZC706/wiki/Create-a-Testbed-using-Xilinx-ZC706
 
 # Attack Code
 
+Previous teams created a spoofing, replay, and DoS attacks (https://github.com/scadder-cu-boulder/spacecraft_cyberSec/tree/master/MIL_STD_1553_Simulation/Attack%20Simulator). These can be run by adding a string to binary converter function to make them compatible with the current code. Other attacks have been discussed, but not implemented.
+
 # Security Monitor
+
+Machine learning algorithms looking at specific feature of 1553 data were tested again packet captures of normal and malicious traffic with some success.
