@@ -2,7 +2,7 @@
 
 This project is based on earlier iterations of this project, which can be found here: https://github.com/scadder-cu-boulder/spacecraft_cyberSec
 
-Satellites are a vital, but underprotected asset. They were long considered immune to cyber attack due to their physical distance from the earth, but this is not the case. The goal of this project is to prototype an ML-enabled anomaly detection system that looks at MIL-STD-1553 bus traffic.
+Satellites are a vital, but underprotected asset. They were once considered immune to cyber attack due to their physical distance from the earth, but this is not the case. The goal of this project is to prototype an ML-enabled anomaly detection system that looks at MIL-STD-1553 bus traffic.
 
 A satellite simulation was created using a Xilinx ZYNC ZC706 FPGA kit, a switch, and Raspberry Pis connected via ethernet as shown below:
 
@@ -25,6 +25,12 @@ How to Run:
 - Compile each file using: gcc -lpthread "file" -o "output file name" (compile the Flight_software code on a Raspberry Pi and then transfer it to the PetaLinux instance).
 - Run the RT_Simulator code on each Raspberry Pi to initialize the 1553 library and begin listening for data on the defined ports.
 - Run the compiled flight software on the PetaLinux to begin sending spacecraft commands and receiving responses.
+
+# Testbed Setup
+
+As shown in the block diagram above, the testbed is comprised of multiple Raspberry Pis simulating spacecraft subsystems (or "remote terminals" as per 1553) connected via Ethernet to a Xilinx Zynq ZC706 FPGA. The FPGA has an ARM processor running PetaLinux, a shared memory block, and a MicroBlaze processor (which will eventually run the security monitor).
+
+Information on replicating the FPGA design can be found on the previous team's wiki here: https://github.com/blue33p/Spacecraft-Cybersecurity-Testbed-Setup-FPGA-Xilinx-ZC706/wiki/Create-a-Testbed-using-Xilinx-ZC706
 
 # Attack Code
 
